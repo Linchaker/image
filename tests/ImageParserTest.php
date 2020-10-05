@@ -10,38 +10,28 @@ class ImageParserTest extends TestCase
         $this->imageParser = new \Linchaker\ImagePRS\ImageParser();
     }
 
-    protected function getPath()
+    public function pathDataProvider()
     {
         return [
-            'image'  => __DIR__ . '/files/img.jpg',
-            'page'   => 'https://www.hdwallpapers.in/hailee_steinfeld_2018-wallpapers.html',
-            'imageLinkWithoutExtension'   => 'http://lorempixel.com/500/500/',
-            'imageLink' => 'https://www.hdwallpapers.in/download/hailee_steinfeld_2018-wide.jpg',
+            [
+                __DIR__ . '/files/img.jpg',
+                file_get_contents(__DIR__ . '/files/img.jpg')
+            ],
+            [
+                'https://www.hdwallpapers.in/hailee_steinfeld_2018-wallpapers.html',
+                file_get_contents('https://www.hdwallpapers.in/download/hailee_steinfeld_2018-wide.jpg')
+            ],
         ];
     }
-    public function testParseImageLinkIsEqual()
+
+    /**
+     * @dataProvider pathDataProvider
+     */
+    public function testParse($path, $expected)
     {
-        $imagePath = $this->getPath()['image'];
-        $result = $this->imageParser->parse($imagePath);
+        $result = $this->imageParser->parse($path);
 
-        $this->assertEquals(file_get_contents($imagePath), $result);
-    }
-
-    public function testParseImageIsNotEqualIfImagePathWithOutExtension()
-    {
-        $imagePath = $this->getPath()['imageLinkWithoutExtension'];
-        $result = $this->imageParser->parse($imagePath);
-
-        $this->assertNotEquals('false', $result);
-    }
-
-    public function testParsePageIsEqualIfImageFound()
-    {
-        $pagePath = $this->getPath()['page'];
-        $mustBeFoundImage = $this->getPath()['imageLink'];
-        $result = $this->imageParser->parse($pagePath);
-
-        $this->assertEquals(file_get_contents($mustBeFoundImage), $result);
+        $this->assertEquals($expected, $result);
     }
 
 }
