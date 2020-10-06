@@ -9,7 +9,7 @@ class ImageParser implements Parser
 
     protected const ALLOW_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif'];
     protected $content;
-    protected $link;
+    protected $path;
     protected $host;
     protected $validAnchors = ['origin', 'default', 'main', 'оригинал'];
 
@@ -21,37 +21,87 @@ class ImageParser implements Parser
      */
     public function parse(string $path): string
     {
-        // image
-        if (in_array(substr($path, -3, 3), self::ALLOW_IMAGE_EXTENSIONS)) {
-            // already image
+        $this->path = $path;
+
+        if ($this->checkImageByExtension()) {
             return file_get_contents($path);
         }
 
-        // get headers to check stream
-        $headers = get_headers($path, 1);
-        // maybe Content-Type is array
-        $contentType = [];
-        if (is_array($headers['Content-Type'])) {
-            $contentType = array_merge($contentType, $headers['Content-Type']);
-        } else {
-            $contentType[] = $headers['Content-Type'];
+        if (!$this->checkPathIsUrl()) {
+            return 'false';
         }
 
-        // stream, and this image type
-        if (count(preg_grep("/^image/", $contentType)) > 0) {
-            return file_get_contents($path);
+        $contentType = $this->getContentTypesFromUrl();
+
+        if ($this->checkImageByContentType($contentType)) {
+            return $this->getImage();
         }
 
         // text page - try find image on the page
         if (count(preg_grep("/^text/", $contentType)) > 0) {
             $img = $this->parseOne($path);
             if ($img !== 'false') {
-                return file_get_contents($img);
+                return $this->getImage($img);
             }
-
         }
 
         return 'false';
+    }
+
+    /**
+     * @return string image data
+     */
+    private function getImage($image = null): string
+    {
+        $image = $image ?? $this->path;
+
+        return file_get_contents($image);
+    }
+    /**
+     * check path for
+     * @return bool true if is available image
+     */
+    private function checkImageByExtension(): bool
+    {
+        return in_array(substr($this->path, -3, 3), self::ALLOW_IMAGE_EXTENSIONS);
+    }
+
+    /**
+     * check if path is image by MimeType from http Content-Type
+     * @param $contentType
+     * @return bool
+     */
+    private function checkImageByContentType($contentType): bool
+    {
+        $imagesMimeTypePattern = "~^image/(". implode('|', self::ALLOW_IMAGE_EXTENSIONS) .")~";
+
+        return (bool)preg_grep($imagesMimeTypePattern, $contentType);
+    }
+
+    /**
+     * check path
+     * @return bool true if is available url
+     */
+    private function checkPathIsUrl(): bool
+    {
+        $headers = @get_headers($this->path);
+        $headers = (is_array($headers)) ? implode( "\n ", $headers) : $headers;
+
+        $availableHttpResponseCodePattern = '#^HTTP/.*\s+[(200|301|302)]+\s#i';
+        return (bool)preg_match($availableHttpResponseCodePattern, $headers);
+    }
+
+    private function getContentTypesFromUrl(): array
+    {
+        $headers = get_headers($this->path, 1);
+
+        $contentType = [];
+        if (is_array($headers['Content-Type'])) {
+            $contentType = array_merge($contentType, $headers['Content-Type']);
+        } else {
+            $contentType[] = $headers['Content-Type'];
+        }
+        return $contentType;
     }
 
     /**
@@ -118,14 +168,4 @@ class ImageParser implements Parser
     {
         return 'false';
     }
-
-    // hery
-    /*public function findAllImages()
-    {
-        if ($count_found = preg_match_all($this->pattern_all_image_link, $this->content, $links)) {
-            echo "Found: $count_found links";
-            echo "<pre>";
-            print_r($links);
-        }
-    }*/
 }
