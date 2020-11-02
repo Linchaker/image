@@ -16,10 +16,15 @@ class ImageSaver implements Saver
         $fileName = $this->getHash();
         $fullFileName = $this->generatePath($fileName, $pathToSave);
 
-        if (file_put_contents($fullFileName, $img)) {
+        if ($this->saving($fullFileName, $img)) {
             return $fileName;
         }
         return 'false';
+    }
+
+    protected function saving($fullFileName, $img): bool
+    {
+        return (boolean) file_put_contents($fullFileName, $img);
     }
 
     /**
