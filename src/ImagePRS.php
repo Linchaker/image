@@ -16,7 +16,12 @@ class ImagePRS extends Manager
 
         // resize img if need
         if (!empty($resize)) {
-            $img = $this->resizer->resize($img, $resize);
+            try {
+                $img = $this->resizer->resize($img, $resize);
+            } catch (\Exception $e) {
+                echo $e->getMessage();
+            }
+
         }
 
         // save image to storage and return filename

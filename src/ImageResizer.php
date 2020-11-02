@@ -20,7 +20,7 @@ class ImageResizer implements Resizer
         try {
             $img = $this->manager->make($path);
         } catch (NotReadableException $e) {
-            return 'Error: not an image';
+            throw new \Exception('not an image');
         }
 
         switch ($img->mime()) {
